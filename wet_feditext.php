@@ -10,7 +10,7 @@ $plugin['name'] = 'wet_feditext';
 // 1 = Plugin help is in raw HTML.  Not recommended.
 # $plugin['allow_html_help'] = 0;
 
-$plugin['version'] = '0.3';
+$plugin['version'] = '0.3.1';
 $plugin['author'] = 'Robert Wetzlmayr';
 $plugin['author_uri'] = 'https://wetzlmayr.at/';
 $plugin['description'] = 'Implements Fediverse protocols like Webfinger, Nodeinfo, and ActivityPub for Textpattern as sufficient yet privacy-aware stubs.';
@@ -126,7 +126,7 @@ class wet_webfinger
     function __construct()
     {
         // Hook Webfinger route
-        register_callback([__CLASS__, 'webfinger'], 'pretext');
+        register_callback([__CLASS__, 'webfinger'], 'pretext_end');
     }
 
     /**
@@ -151,7 +151,7 @@ class wet_webfinger
             }
             txp_status_header('200 OK');
             $username = $matches[1];
-            $siteurl = safe_escape($prefs['siteurl']);
+            $siteurl = $prefs['siteurl'];
 
             if ($production_status === 'debug') {
                 // Start with a really well-known sample account just for testing. The next lines can be left as is or deleted - your choice.
@@ -172,11 +172,11 @@ class wet_webfinger
              * WHERE txp_users.name = $acct
              */
                 "SELECT" .
-                " CONCAT (txp_users.`name`, '@', '$siteurl') AS acct, wet_feditext.alias" .
+                " CONCAT (txp_users.`name`, '@', '" . safe_escape($siteurl) . "') AS acct, wet_feditext.alias" .
                 " FROM " . safe_pfx_j('txp_users') .
                 " INNER JOIN " . safe_pfx_j('wet_feditext') .
                 " ON txp_users.`name` = wet_feditext.`name`" .
-                "WHERE txp_users.`name` = '$username'"); // TODO Sind $domain, $username safe?
+                "WHERE txp_users.`name` = '" . safe_escape($username) . "'");
 
             // Collect persistent actor aliases for the site user given as the `acct:` request parameter.
             foreach ($rs as $row) {
@@ -268,8 +268,8 @@ class wet_nodeinfo
     function __construct()
     {
         global $plugin;
-        register_callback([__CLASS__, 'nodeinfo'], 'pretext');
-        register_callback([__CLASS__, 'nodeinfo_2_1'], 'pretext');
+        register_callback([__CLASS__, 'nodeinfo'], 'pretext_end');
+        register_callback([__CLASS__, 'nodeinfo_2_1'], 'pretext_end');
     }
 
     /**
@@ -358,7 +358,7 @@ class wet_activitypub
     function __construct()
     {
         // Hook ActivityPub routes
-        register_callback([__CLASS__, 'activity'], 'pretext');
+        register_callback([__CLASS__, 'activity'], 'pretext_end');
     }
 
     /**
