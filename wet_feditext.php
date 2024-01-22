@@ -130,7 +130,7 @@ class wet_webfinger
     }
 
     /**
-     * Respond to a webfinger request at its well-known URI `/.well-known/webfinger?resource=acct:username@domain`
+     * Respond to a webfinger request at its well-known URI `/.well-known/webfinger?resource=acct:foo@example.com`
      *
      * see https://docs.joinmastodon.org/spec/webfinger/
      * see https://datatracker.ietf.org/doc/html/rfc7033
@@ -144,6 +144,9 @@ class wet_webfinger
 
         // Well-known route requested?
         if (preg_match('%^/\.well-known/webfinger%i', $pretext['request_uri'])) {
+
+            header('Content-Type: application/jrd+json; charset=utf-8');
+
             $acct = gps('resource');
             if (!preg_match('/^acct:(.*)@.*$/i', $acct, $matches)) {
                 // Invalid acct: request parameter
@@ -156,109 +159,112 @@ class wet_webfinger
             if ($production_status === 'debug') {
                 // Start with a really well-known sample account just for testing. The next lines can be left as is or deleted - your choice.
                 $known_accounts['donald.swain@example.com']['alias'] = ['@donald_swain@mastodon.social'];
-                $known_accounts["$siteurl@$siteurl"]['alias'] = ['@donald_swain@mastodon.social'];
             }
 
             $acct = preg_replace('/^acct:/', '', $acct);
 
-            // Collect a table of username => aliases relations
-            // matching the requested acct: name from this plugins add-on DB table `wet_feditext`.
-            $rs = safe_query(
-            /**
-             * SELECT CONCAT (txp_users.`name`, '@', 'example.com'), wet_feditext.alias
-             * FROM txp_users
-             * INNER JOIN txp_wet_feditext
-             * ON txp_users.name = wet_feditext.name;
-             * WHERE txp_users.name = $acct
-             */
-                "SELECT" .
-                " CONCAT (txp_users.`name`, '@', '" . safe_escape($siteurl) . "') AS acct, wet_feditext.alias" .
-                " FROM " . safe_pfx_j('txp_users') .
-                " INNER JOIN " . safe_pfx_j('wet_feditext') .
-                " ON txp_users.`name` = wet_feditext.`name`" .
-                "WHERE txp_users.`name` = '" . safe_escape($username) . "'");
-
-            // Collect persistent actor aliases for the site user given as the `acct:` request parameter.
-            foreach ($rs as $row) {
-                $known_accounts[$row['acct']]['alias'][] = $row['alias'];
-            }
-
-            // Respond with the found user's details
-            if (isset($known_accounts[$acct]['alias']) && is_array($known_accounts[$acct]['alias'])) {
-
+            // webfinger the sites instance actor account
+            if ($siteurl == $username) { // TODO
                 $out = [
                     'subject' => "acct:$acct",
-                    'aliases' => []
                 ];
+                $out['links'][] = [
+                    "rel" => "self",
+                    "type" => "application/activity+json",
+                    "href" => "https://$siteurl/@$siteurl/"
+                ];
+            } else {
 
-                foreach ($known_accounts[$acct]['alias'] as $alias) {
-                    if (preg_match('/^@(.*)@(.*)$/', $alias, $matches)) {
-                        $username = $matches[1];
-                        $domain = $matches[2];
-                    } else {
-                        // Invalid alias in config DB table
-                        txp_die('<!-- Invalid alias:  ' . txp_escape(true, $alias) . ' -->', '404');
-                    }
-                    header('Content-Type: application/jrd+json; charset=utf-8');
+                // Collect a table of username => aliases relations
+                // matching the requested acct: name from this plugins add-on DB table `wet_feditext`.
+                $rs = safe_query(
+                /**
+                 * SELECT CONCAT (txp_users.`name`, '@', 'example.com'), wet_feditext.alias
+                 * FROM txp_users
+                 * INNER JOIN txp_wet_feditext
+                 * ON txp_users.name = wet_feditext.name;
+                 * WHERE txp_users.name = $acct
+                 */
+                    "SELECT" .
+                    " CONCAT (txp_users.`name`, '@', '" . safe_escape($siteurl) . "') AS acct, wet_feditext.alias" .
+                    " FROM " . safe_pfx_j('txp_users') .
+                    " INNER JOIN " . safe_pfx_j('wet_feditext') .
+                    " ON txp_users.`name` = wet_feditext.`name`" .
+                    "WHERE txp_users.`name` = '" . safe_escape($username) . "'");
 
-                    $out['aliases'][] = $alias;
-                    // webfinger the users account
-                    $profile_url = parse('<txp:article_custom match="user-profile" keywords="' . $username . '" limit="1"><txp:permlink /></txp:article_custom>');  // TODO
+                // Collect persistent actor aliases for the site user given as the `acct:` request parameter.
+                foreach ($rs as $row) {
+                    $known_accounts[$row['acct']]['alias'][] = $row['alias'];
+                }
 
-                    if (!empty($profile_url)) {
-                        $out['links'][] = [
-                            "rel" => "http://webfinger.net/rel/profile-page",
-                            "type" => "text/html",
-                            "href" => "$profile_url"
-                        ];
+                // Respond with the found user's details
+                if (isset($known_accounts[$acct]['alias']) && is_array($known_accounts[$acct]['alias'])) {
 
-                        $out['links'][] = [
-                            "rel" => "self",
-                            "type" => "application/activity+json",
-                            "href" => "$profile_url.json"
-                        ];
-                    }
-
-                    // webfinger the sites instance actor account
-                    $out['links'][] = [
-                        "rel" => "self",
-                        "type" => "application/activity+json",
-                        "href" => "https://$siteurl/@$siteurl/"
+                    $out = [
+                        'subject' => "acct:$acct",
+                        'aliases' => []
                     ];
 
-                    if (false) { // Is this useful anyhow?
-                        $out['links'][] = [
-                            "rel" => "http://ostatus.org/schema/1.0/subscribe",
-                            "template" => "https://$siteurl/authorize_interaction?uri={uri}"
+                    foreach ($known_accounts[$acct]['alias'] as $alias) {
+                        if (preg_match('/^@(.*)@(.*)$/', $alias, $matches)) {
+                            $username = $matches[1];
+                            $domain = $matches[2];
+                        } else {
+                            // Invalid alias in config DB table
+                            txp_die('<!-- Invalid alias:  ' . txp_escape(true, $alias) . ' -->', '404');
+                        }
+
+                        $out['aliases'][] = $alias;
+                        // webfinger the users account
+                        $profile_url = parse('<txp:article_custom match="user-profile" keywords="' . $username . '" limit="1"><txp:permlink /></txp:article_custom>');  // TODO
+
+                        if (!empty($profile_url)) {
+                            $out['links'][] = [
+                                "rel" => "http://webfinger.net/rel/profile-page",
+                                "type" => "text/html",
+                                "href" => "$profile_url"
+                            ];
+
+                            $out['links'][] = [
+                                "rel" => "self",
+                                "type" => "application/activity+json",
+                                "href" => "$profile_url.json" // TODO
+                            ];
+                        }
+
+                        if (false) { // Is this useful anyhow?
+                            $out['links'][] = [
+                                "rel" => "http://ostatus.org/schema/1.0/subscribe",
+                                "template" => "https://$siteurl/authorize_interaction?uri={uri}"
+                            ];
+                        }
+
+                        $avatar_url = parse('<txp:images category="user-avatar" name="' . $username . '" limit="1"><txp:image_url /></txp:images>');
+                        $avatar_type = parse('<txp:images category="user-avatar" name="' . $username . '" limit="1"><txp:image_info type="ext"/></txp:images>');
+
+                        $mime_types = [
+                            '.gif' => 'image/gif',
+                            '.jpg' => 'image/jpeg',
+                            '.jpeg' => 'image/jpeg',
+                            '.png' => 'image/png',
+                            '.webp' => 'image/webp',
+                            '.svg' => 'image/svg+xml',
+                            '.avif' => 'image/avif',
                         ];
+
+                        $avatar_type = isset($mime_types[$avatar_type]) ? $mime_types[$avatar_type] : 'image/wtf';
+
+                        if (!empty($avatar_url)) {
+                            $out['links'][] = [
+                                "rel" => "http://webfinger.net/rel/avatar",
+                                "type" => $avatar_type,
+                                "href" => $avatar_url
+                            ];
+                        }
                     }
-
-                    $avatar_url = parse('<txp:images category="user-avatar" name="' . $username . '" limit="1"><txp:image_url /></txp:images>');
-                    $avatar_type = parse('<txp:images category="user-avatar" name="' . $username . '" limit="1"><txp:image_info type="ext"/></txp:images>');
-
-                    $mime_types = [
-                        '.gif' => 'image/gif',
-                        '.jpg' => 'image/jpeg',
-                        '.jpeg' => 'image/jpeg',
-                        '.png' => 'image/png',
-                        '.webp' => 'image/webp',
-                        '.svg' => 'image/svg+xml',
-                        '.avif' => 'image/avif',
-                    ];
-
-                    $avatar_type = isset($mime_types[$avatar_type])? $mime_types[$avatar_type] : 'image/wtf';
-
-                    if (!empty($avatar_url)) {
-                        $out['links'][] = [
-                            "rel" => "http://webfinger.net/rel/avatar",
-                            "type" => $avatar_type,
-                            "href" => $avatar_url
-                        ];
-                    }
-
-                    die(json_encode($out));
                 }
             }
+            die(json_encode($out));
         }
     }
 }
@@ -287,7 +293,7 @@ class wet_nodeinfo
             $response = json_encode([
                 'links' => [
                     'rel' => "http://nodeinfo.diaspora.software/ns/schema/2.1",
-                    'href' => parse('<txp:site_url />'). "nodeinfo/2.1"
+                    'href' => parse('<txp:site_url />') . "nodeinfo/2.1"
                 ]
             ]);
             die($response);
@@ -341,11 +347,11 @@ class wet_nodeinfo
             ];
 
             // Show them a few of our more private details if we are inclined to...
-            if(!defined('NOYB')) {
+            if (!defined('NOYB')) {
                 $response['software']['version'] = $thisversion;
                 // Count total users who can at least publish articles
-                $response['usage']['users']['total'] = (int) safe_count('txp_users', 'privs IN (' . $txp_permissions['article.publish'] . ')');
-                $response['usage']['localPosts'] = (int) safe_count('textpattern', 'Status = ' . STATUS_LIVE);
+                $response['usage']['users']['total'] = (int)safe_count('txp_users', 'privs IN (' . $txp_permissions['article.publish'] . ')');
+                $response['usage']['localPosts'] = (int)safe_count('textpattern', 'Status = ' . STATUS_LIVE);
             }
             die(json_encode($response));
         }
@@ -374,7 +380,7 @@ class wet_activitypub
         if (preg_match('%^/$%i', $pretext['request_uri']) &&
             in_array('application/activity+json', $pretext['accept'])) {
             header('Content-Type: application/activity+json; charset=utf-8');
-            $response = json_encode([
+            $response = json_encode([ // TODO
                 "@context" => [
                     "https://www.w3.org/ns/activitystreams",
                     "https://w3id.org/security/v1" => [
