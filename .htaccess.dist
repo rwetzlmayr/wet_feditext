@@ -1,0 +1,14 @@
+###
+# Take a look at your existing /.well-known/.htaccess file for comparison. Some of the lines, e.g. #10 and #11
+# in this example may also be there if your site uses Let's Encrypt SSL certificates. Apply comments like here.
+#
+
+# Permit access to the challenge files but nothing else
+Order allow,deny
+Allow from all
+
+#RewriteCond %{REQUEST_URI} ^/[.]well-known/acme-challenge/[a-zA-Z0-9_-]+$
+#RewriteRule .* - [L]
+
+#RewriteRule .* - [F]
+
