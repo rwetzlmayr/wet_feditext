@@ -43,44 +43,44 @@ if (!defined('txpinterface'))
     @include_once('zem_tpl.php');
 
 if (0) {
-    ?>
-    # --- BEGIN PLUGIN HELP ---
+?>
+# --- BEGIN PLUGIN HELP ---
 
-    h3. Purpose
+h3. Purpose
 
-    Implements Fediverse protocols like Webfinger, Nodeinfo, and ActivityPub for Textpattern.
+Implements Fediverse protocols like Webfinger, Nodeinfo, and ActivityPub for Textpattern.
 
-    h3. How to use
+h3. How to use
 
-    * Install.
-    * Edit the file /.well-known/.htaccess, if it exists, and comment out the lines according to the example file `.htaccess.dist` that comes with this plugin.
-    * Enable.
-    * Enjoy.
+* Install.
+* Edit the file /.well-known/.htaccess, if it exists, and comment out the lines according to the example file `.htaccess.dist` that comes with this plugin.
+* Enable.
+* Enjoy.
 
-    To verify that this plugin is working properly, please set the "production status of your site":./index.php?event=prefs to *Debugging* and visit the links below. They should produce readable results and not return a @404 Not Found@ error or worse.
+To verify that this plugin is working properly, please set the "production status of your site":./index.php?event=prefs to *Debugging* and visit the links below. They should produce readable results and not return a @404 Not Found@ error or worse.
 
-    * "$":/.well-known/webfinger?resource=acct:donald.swain@example.com
-    * "$":/.well-known/nodeinfo
-    * "$":/nodeinfo/2.1
+* "$":/.well-known/webfinger?resource=acct:donald.swain@example.com
+* "$":/.well-known/nodeinfo
+* "$":/nodeinfo/2.1
 
-    User avatars are found by following these rules:
+User avatars are found by following these rules:
 
-    # "Upload a user avatar image":./?event=image and assign it to the 'user-avatar' "image category":./?event=category (you may need to create this category if it does not exist).
-    # Set the image name field to the user's login name.
+# "Upload a user avatar image":./?event=image and assign it to the 'user-avatar' "image category":./?event=category (you may need to create this category if it does not exist).
+# Set the image name field to the user's login name.
 
-    User profile pages are found by following these rules:
+User profile pages are found by following these rules:
 
-    # "Write an article":./?event=article and assign it to the  'user-profile' "article category":./?event=category (you may also need to create this category if it does not exist).
-    # Include the user's login name in the article's keywords list.
+# "Write an article":./?event=article and assign it to the  'user-profile' "article category":./?event=category (you may also need to create this category if it does not exist).
+# Include the user's login name in the article's keywords list.
 
-    You may want to submit your site to the "FediDB(Fediverse Network Statistics)":https://fedidb.org/ using their "Add my instance" command to satisfy your inner bureaucrat.
+You may want to submit your site to the "FediDB(Fediverse Network Statistics)":https://fedidb.org/ using their "Add my instance" command to satisfy your inner bureaucrat.
 
-    h3. Licence
+h3. Licence
 
-    This plugin is released under the "Gnu General Public Licence":http://www.gnu.org/licenses/gpl.txt.
+This plugin is released under the "Gnu General Public Licence":http://www.gnu.org/licenses/gpl.txt.
 
-    # --- END PLUGIN HELP ---
-    <?php
+# --- END PLUGIN HELP ---
+<?php
 }
 
 # --- BEGIN PLUGIN CODE ---
