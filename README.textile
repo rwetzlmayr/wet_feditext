@@ -1,3 +1,5 @@
-h2. wet_feditext Textpattern plugin
+h1. 301 Moved Permanently
 
-Implements Fediverse protocols like Webfinger, Nodeinfo, and ActivityPub for Textpattern. Requires Textpattern 4.8 or higher.
+The repository has been moved to https://codeberg.org/rwetzlmayr/wet_feditext.
+
+This page is left as a placeholder to guide users to the new location.
